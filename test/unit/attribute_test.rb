@@ -19,6 +19,23 @@ class AttributeTest < ActiveSupport::TestCase
     end
   end
 
+  def without_native_limit(type)
+    ActiveRecord::Base.connection.class_eval do
+      define_method :native_database_types do
+        super().tap do |types|
+          types[type] = nil
+        end
+      end
+    end
+    yield
+  ensure
+    ActiveRecord::Base.connection.class_eval do
+      define_method :native_database_types do
+        super()
+      end
+    end
+  end
+
   def create_attribute(model, name)
     Domain::Attribute.new(Domain.generate, model, model.columns_hash[name])
   end
@@ -143,6 +160,16 @@ class AttributeTest < ActiveSupport::TestCase
   test "type_description should return short type description" do
     create_model "Foo", :a => :binary
     assert_equal "binary", create_attribute(Foo, "a").type_description
+  end
+
+  test "type_description works for non native field types" do
+    without_native_limit :string do
+      create_model "Foo"
+      add_column :foos, :my_str, :string
+      ActiveRecord::Base.connection.native_database_types[:string]
+      assert_equal "string", create_attribute(Foo, "my_str").type_description
+    end
+
   end
 
   test "type_description should return short type description without limit if standard" do

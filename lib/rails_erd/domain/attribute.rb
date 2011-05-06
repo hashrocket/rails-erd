@@ -100,7 +100,7 @@ module RailsERD
       # Returns any non-standard limit for this attribute. If a column has no
       # limit or uses a default database limit, this method returns +nil+.
       def limit
-        column.limit if column.limit != @model.connection.native_database_types[type][:limit]
+        column.limit if column.limit != @model.connection.native_database_types[type].try(:fetch, :limit, nil)
       end
 
       # Returns any non-standard scale for this attribute (decimal types only).
